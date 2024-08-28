@@ -1,11 +1,11 @@
 // Function to get the nearest due date
 const getNearestDueDate = (dates) => {
-  const validDates = dates.filter(
-    (date) => date !== null && date !== undefined
-  );
-  return validDates.reduce((nearest, current) => {
-    return new Date(current) < new Date(nearest) ? current : nearest;
-  }, validDates[0]);
+  const validDates = dates.filter((date) => date && date.trim() !== "");
+  return validDates.length > 0
+    ? validDates.reduce((nearest, current) => {
+        return new Date(current) < new Date(nearest) ? current : nearest;
+      }, validDates[0])
+    : null;
 };
 
 // Function to perform a search query
@@ -32,6 +32,16 @@ async function performSearch(headers, parentId, fieldName, pkey) {
   return await searchResponse.json();
 }
 
+// Function to safely get date from search result
+const safelyGetDate = (result, fieldName) => {
+  if (result && result.data && Array.isArray(result.data)) {
+    return result.data
+      .map((item) => item.attributes && item.attributes[fieldName])
+      .filter((date) => date && date.trim() !== "");
+  }
+  return [];
+};
+
 export default async function handler(req, res) {
   if (req.method === "POST") {
     let responseBody = {};
@@ -55,19 +65,13 @@ export default async function handler(req, res) {
 
         // Process search results
         const nearestMaintenanceDate = getNearestDueDate(
-          maintenanceResult.data.map(
-            (item) => item.attributes.cf_next_pm_due_date
-          )
+          safelyGetDate(maintenanceResult, "cf_next_pm_due_date")
         );
         const nearestCalibrationDate = getNearestDueDate(
-          calibrationResult.data.map(
-            (item) => item.attributes.cf_next_calibration_due
-          )
+          safelyGetDate(calibrationResult, "cf_next_calibration_due")
         );
         const nearestRequalificationDate = getNearestDueDate(
-          requalificationResult.data.map(
-            (item) => item.attributes.cf_next_requalification
-          )
+          safelyGetDate(requalificationResult, "cf_next_requalification")
         );
 
         // Prepare body for updating parent record
