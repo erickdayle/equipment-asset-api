@@ -29,12 +29,12 @@ const performSearch = async (headers, parentId, fieldName, pkey) => {
     aql: `select id, pkey, title, ${fieldName} from __main__ where parent_id eq ${parentId} AND pkey co "${pkey}"`,
   });
 
-  console.log(`Performing search for ${pkey} records:`, {
-    parentId,
-    fieldName,
-    pkey,
-    searchBody,
-  });
+  // console.log(`Performing search for ${pkey} records:`, {
+  //   parentId,
+  //   fieldName,
+  //   pkey,
+  //   searchBody,
+  // });
 
   const searchResponse = await fetch(
     `${process.env.ENDPOINT_DOMAIN}/records/search`,
@@ -56,10 +56,10 @@ const performSearch = async (headers, parentId, fieldName, pkey) => {
   }
 
   const result = await searchResponse.json();
-  console.log(
-    `Search results for ${pkey} records:`,
-    JSON.stringify(result, null, 2)
-  );
+  // console.log(
+  //   `Search results for ${pkey} records:`,
+  //   JSON.stringify(result, null, 2)
+  // );
   return result;
 };
 
@@ -101,7 +101,7 @@ export default async function handler(req, res) {
 
   try {
     const { parent_id } = JSON.parse(req.body);
-    console.log("Received webhook with parent_id:", parent_id);
+    // console.log("Received webhook with parent_id:", parent_id);
 
     if (!parent_id) {
       return res
@@ -121,11 +121,11 @@ export default async function handler(req, res) {
         performSearch(headers, parent_id, "cf_next_requalification", "RQ"),
       ]);
 
-    console.log("Search results status:", {
-      maintenance: maintenanceResult.status,
-      calibration: calibrationResult.status,
-      requalification: requalificationResult.status,
-    });
+    // console.log("Search results status:", {
+    //   maintenance: maintenanceResult.status,
+    //   calibration: calibrationResult.status,
+    //   requalification: requalificationResult.status,
+    // });
 
     const safelyGetDates = (result, fieldName) =>
       result.status === "fulfilled" && result.value?.data
@@ -144,17 +144,34 @@ export default async function handler(req, res) {
       safelyGetDates(requalificationResult, "cf_next_requalification")
     );
 
-    console.log("Nearest dates:", {
-      maintenance: nearestMaintenanceDate,
-      calibration: nearestCalibrationDate,
-      requalification: nearestRequalificationDate,
-    });
+    // console.log("Nearest dates:", {
+    //   maintenance: nearestMaintenanceDate,
+    //   calibration: nearestCalibrationDate,
+    //   requalification: nearestRequalificationDate,
+    // });
 
-    const updateResult = await updateParentRecord(headers, parent_id, {
-      cf_next_pm_due_date: nearestMaintenanceDate ?? "",
-      cf_next_calibration_due: nearestCalibrationDate ?? "",
-      cf_next_requalification: nearestRequalificationDate ?? "",
-    });
+    const updateFields = {};
+
+    if (nearestMaintenanceDate !== null && nearestMaintenanceDate !== "") {
+      updateFields.cf_next_pm_due_date = nearestMaintenanceDate;
+    }
+
+    if (nearestCalibrationDate !== null && nearestCalibrationDate !== "") {
+      updateFields.cf_next_calibration_due = nearestCalibrationDate;
+    }
+
+    if (
+      nearestRequalificationDate !== null &&
+      nearestRequalificationDate !== ""
+    ) {
+      updateFields.cf_next_requalification = nearestRequalificationDate;
+    }
+
+    const updateResult = await updateParentRecord(
+      headers,
+      parent_id,
+      updateFields
+    );
 
     console.log("Update result:", updateResult);
 
