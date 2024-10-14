@@ -26,7 +26,7 @@ const getNearestDate = (dates) => {
 // API Functions
 const performSearch = async (headers, parentId, fieldName, pkey) => {
   const searchBody = JSON.stringify({
-    aql: `select id, pkey, title, ${fieldName} from __main__ where parent_id eq ${parentId} AND pkey co "${pkey}"`,
+    aql: `select id, pkey, title, ${fieldName} from __main__ where parent_id eq ${parentId} AND (pkey co "${pkey} OR pkey co \"SCH\")"`,
   });
 
   // console.log(`Performing search for ${pkey} records:`, {
@@ -121,11 +121,11 @@ export default async function handler(req, res) {
         performSearch(headers, parent_id, "cf_next_requalification", "RQ"),
       ]);
 
-    // console.log("Search results status:", {
-    //   maintenance: maintenanceResult.status,
-    //   calibration: calibrationResult.status,
-    //   requalification: requalificationResult.status,
-    // });
+    console.log("Search results status:", {
+      maintenance: maintenanceResult.status,
+      calibration: calibrationResult.status,
+      requalification: requalificationResult.status,
+    });
 
     const safelyGetDates = (result, fieldName) =>
       result.status === "fulfilled" && result.value?.data
@@ -144,11 +144,11 @@ export default async function handler(req, res) {
       safelyGetDates(requalificationResult, "cf_next_requalification")
     );
 
-    // console.log("Nearest dates:", {
-    //   maintenance: nearestMaintenanceDate,
-    //   calibration: nearestCalibrationDate,
-    //   requalification: nearestRequalificationDate,
-    // });
+    console.log("Nearest dates:", {
+      maintenance: nearestMaintenanceDate,
+      calibration: nearestCalibrationDate,
+      requalification: nearestRequalificationDate,
+    });
 
     const updateFields = {};
 
