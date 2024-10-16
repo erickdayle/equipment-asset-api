@@ -26,7 +26,7 @@ const getNearestDate = (dates) => {
 // API Functions
 const performSearch = async (headers, parentId, fieldName, pkey) => {
   const searchBody = JSON.stringify({
-    aql: `select id, pkey, title, ${fieldName} from __main__ where parent_id eq ${parentId} AND (pkey co "${pkey}" OR pkey co \"SCH\")`,
+    aql: `select id, pkey, title, ${fieldName} from __main__ where parent_id eq ${parentId} AND pkey co \"SCH\"`,
   });
 
   // console.log(`Performing search for ${pkey} records:`, {
