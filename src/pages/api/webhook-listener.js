@@ -1,26 +1,11 @@
 // Utility Function
 const getNearestDate = (dates) => {
-  const now = new Date();
   const validDates = dates.filter((date) => date && date.trim() !== "");
-
-  if (validDates.length === 0) return "";
-
-  const futureDates = validDates.filter((date) => new Date(date) > now);
-  const pastDates = validDates.filter((date) => new Date(date) <= now);
-
-  if (futureDates.length > 0) {
-    // Return the nearest future date
-    return futureDates.reduce((nearest, current) =>
-      new Date(current) < new Date(nearest) ? current : nearest
-    );
-  } else if (pastDates.length > 0) {
-    // Return the most recent past date
-    return pastDates.reduce((mostRecent, current) =>
-      new Date(current) > new Date(mostRecent) ? current : mostRecent
-    );
-  }
-
-  return "";
+  return validDates.length > 0
+    ? validDates.reduce((earliest, current) =>
+        new Date(current) < new Date(earliest) ? current : earliest
+      )
+    : "";
 };
 
 // API Functions
