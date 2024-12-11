@@ -1,4 +1,3 @@
-// Utility Function
 const getNearestDate = (dates) => {
   const validDates = dates.filter((date) => date && date.trim() !== "");
   return validDates.length > 0
@@ -57,7 +56,7 @@ const updateParentRecord = async (headers, parentId, attributes) => {
     },
   };
 
-  console.log("Updating parent record with body:", JSON.stringify(updateBody));
+  // console.log("Updating parent record with body:", JSON.stringify(updateBody));
 
   const updateResponse = await fetch(
     `${process.env.ENDPOINT_DOMAIN}/records/${parentId}`,
@@ -106,18 +105,23 @@ export default async function handler(req, res) {
         performSearch(headers, parent_id, "cf_next_requalification", "RQ"),
       ]);
 
-    console.log("Search results status:", {
-      maintenance: maintenanceResult.status,
-      calibration: calibrationResult.status,
-      requalification: requalificationResult.status,
-    });
+    // console.log("Search results status:", {
+    //   maintenance: maintenanceResult.status,
+    //   calibration: calibrationResult.status,
+    //   requalification: requalificationResult.status,
+    // });
 
-    const safelyGetDates = (result, fieldName) =>
-      result.status === "fulfilled" && result.value?.data
-        ? result.value.data
-            .map((item) => item.attributes?.[fieldName])
-            .filter(Boolean)
-        : [];
+    // Updated function to properly extract dates from results
+    const safelyGetDates = (result, fieldName) => {
+      if (result.status === "fulfilled" && result.value?.data) {
+        return result.value.data
+          .map((record) => {
+            return record.attributes && record.attributes[fieldName];
+          })
+          .filter((date) => date);
+      }
+      return [];
+    };
 
     const nearestMaintenanceDate = getNearestDate(
       safelyGetDates(maintenanceResult, "cf_next_pm_due_date")
@@ -129,36 +133,32 @@ export default async function handler(req, res) {
       safelyGetDates(requalificationResult, "cf_next_requalification")
     );
 
-    console.log("Nearest dates:", {
+    // console.log(
+    //   "All maintenance dates:",
+    //   safelyGetDates(maintenanceResult, "cf_next_pm_due_date")
+    // );
+    // console.log(
+    //   "All calibration dates:",
+    //   safelyGetDates(calibrationResult, "cf_next_calibration_due")
+    // );
+    // console.log(
+    //   "All requalification dates:",
+    //   safelyGetDates(requalificationResult, "cf_next_requalification")
+    // );
+
+    console.log("Earliest dates:", {
       maintenance: nearestMaintenanceDate,
       calibration: nearestCalibrationDate,
       requalification: nearestRequalificationDate,
     });
 
-    const updateFields = {};
+    const updateResult = await updateParentRecord(headers, parent_id, {
+      cf_next_pm_due_date: nearestMaintenanceDate ?? "",
+      cf_next_calibration_due: nearestCalibrationDate ?? "",
+      cf_next_requalification: nearestRequalificationDate ?? "",
+    });
 
-    if (nearestMaintenanceDate !== null && nearestMaintenanceDate !== "") {
-      updateFields.cf_next_pm_due_date = nearestMaintenanceDate;
-    }
-
-    if (nearestCalibrationDate !== null && nearestCalibrationDate !== "") {
-      updateFields.cf_next_calibration_due = nearestCalibrationDate;
-    }
-
-    if (
-      nearestRequalificationDate !== null &&
-      nearestRequalificationDate !== ""
-    ) {
-      updateFields.cf_next_requalification = nearestRequalificationDate;
-    }
-
-    const updateResult = await updateParentRecord(
-      headers,
-      parent_id,
-      updateFields
-    );
-
-    console.log("Update result:", updateResult);
+    // console.log("Update result:", updateResult);
 
     res.status(200).json({
       message: "Webhook event processed successfully",
